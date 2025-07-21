@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Daily Journal</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="icon.png" />
+  <meta name="theme-color" content="#3f51b5" />
+  <link rel="icon" type="image/png" href="Logo.png">
+  <style>
+    :root {
+      --bg: #f2f4f8;
+      --text: #333;
+      --accent: #3f51b5;
+      --primary-btn: #4caf50;
+      --danger-btn: #f44336;
+      --status-color: #2e7d32;
+    }
+
+    body.dark {
+      --bg: #121212;
+      --text: #eee;
+      --accent: #90caf9;
+      --primary-btn: #81c784;
+      --danger-btn: #e57373;
+      --status-color: #81c784;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      background: var(--accent);
+      color: white;
+      padding: 1.5em 1em;
+      text-align: center;
+      position: sticky;
+      top: 0;
+      z-index: 1001;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .toggle-btn {
+      background: #555;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      padding: 0.3em 0.6em;
+      font-size: 1.2em;
+      position: absolute;
+      right: 1em;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+
+    .container {
+      max-width: 650px;
+      margin: 1em auto 2em;
+      padding: 0 1em;
+      flex-grow: 1;
+    }
+
+    input[type="date"],
+    textarea {
+      width: 100%;
+      padding: 0.8em;
+      font-size: 1em;
+      margin-bottom: 1em;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      background: white;
+      color: black;
+      font-family: inherit;
+      resize: vertical;
+    }
+
+    body.dark input,
+    body.dark textarea {
+      background: #1e1e1e;
+      color: white;
+      border-color: #444;
+    }
+
+    textarea {
+      height: 180px;
+      min-height: 120px;
+      max-height: 300px;
+    }
+
+    button {
+      padding: 0.8em 1.2em;
+      font-size: 1em;
+      margin: 0.3em 0.5em 0.3em 0;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      user-select: none;
+      transition: background-color 0.2s ease;
+    }
+
+    button:hover {
+      filter: brightness(90%);
+    }
+
+    .save-btn {
+      background: var(--primary-btn);
+      color: white;
+    }
+
+    .export-btn {
+      background: #2196f3;
+      color: white;
+    }
+
+    #status {
+      margin-top: 1em;
+      color: var(--status-color);
+      font-style: italic;
+      min-height: 1.2em;
+    }
+
+    footer {
+      background: var(--accent);
+      color: white;
+      text-align: center;
+      padding: 1em 0;
+      font-size: 0.9em;
+      margin-top: auto;
+      box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    @media (max-width: 600px) {
+      .container {
+        padding: 0.5em;
+        margin: 1em auto 3em;
+      }
+      header {
+        padding: 1em;
+      }
+      .toggle-btn {
+        font-size: 1em;
+        padding: 0.3em 0.5em;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1 style="margin:0;">📝 Daily Journal</h1>
+    <button class="toggle-btn" aria-label="Toggle Dark Mode" onclick="toggleDarkMode()">🌙</button>
+  </header>
+
+  <div class="container">
+    <label for="entryDate">Select Date:</label>
+    <input type="date" id="entryDate" aria-label="Select Date" />
+
+    <label for="journalEntry">Your Entry:</label>
+    <textarea id="journalEntry" placeholder="Write your journal entry here..." aria-label="Journal Entry"></textarea>
+
+    <div style="margin-top:1em;">
+      <button class="save-btn" onclick="saveEntry()">💾 Save</button>
+      <button class="export-btn" onclick="exportToPDF()">📄 Export PDF</button>
+    </div>
+
+    <div id="status" role="status" aria-live="polite"></div>
+  </div>
+
+  <footer>
+    <p>&copy; 2025 Daily Journal. All rights reserved.</p>
+  </footer>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script>
+    function toggleDarkMode() {
+      document.body.classList.toggle('dark');
+      localStorage.setItem('theme', document.body.classList.contains('dark') ? 'dark' : 'light');
+    }
+
+    function loadTheme() {
+      const saved = localStorage.getItem('theme');
+      if (saved === 'dark') {
+        document.body.classList.add('dark');
+      }
+    }
+
+    const entryDate = document.getElementById('entryDate');
+    const journalEntry = document.getElementById('journalEntry');
+    const status = document.getElementById('status');
+
+    function getKey(date) {
+      return `journal-${date}`;
+    }
+
+    function saveEntry() {
+      if (!entryDate.value) {
+        status.textContent = '❗ Please select a date before saving.';
+        return;
+      }
+      const key = getKey(entryDate.value);
+      const entry = {
+        text: journalEntry.value
+      };
+      localStorage.setItem(key, JSON.stringify(entry));
+      status.textContent = '💾 Entry saved.';
+    }
+
+    function loadEntry() {
+      if (!entryDate.value) {
+        journalEntry.value = '';
+        status.textContent = '';
+        return;
+      }
+      const key = getKey(entryDate.value);
+      const data = JSON.parse(localStorage.getItem(key));
+      journalEntry.value = data?.text || '';
+      status.textContent = data ? '✅ Entry loaded.' : '🕳️ No entry for this date.';
+    }
+
+    async function exportToPDF() {
+      if (!entryDate.value) {
+        status.textContent = '❗ Please select a date before exporting.';
+        return;
+      }
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      doc.setFontSize(16);
+      doc.text(`Journal Entry: ${entryDate.value}`, 10, 20);
+      doc.setFontSize(12);
+      const splitText = doc.splitTextToSize(journalEntry.value, 180);
+      doc.text(splitText, 10, 30);
+      doc.save(`Journal-${entryDate.value}.pdf`);
+      status.textContent = '📄 PDF exported.';
+    }
+
+    entryDate.addEventListener('change', loadEntry);
+
+    window.addEventListener('DOMContentLoaded', () => {
+      loadTheme();
+      entryDate.valueAsDate = new Date();
+      loadEntry();
+    });
+  </script>
+</body>
+</html>
